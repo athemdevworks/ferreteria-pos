@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FerreStock Pro - ERP & POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .active-nav-item {
+            background-color: #312e81; /* indigo-900 */
+            border-left: 4px solid #818cf8; /* indigo-400 */
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col flex-none transition-all duration-300 hidden md:flex">
+        <div class="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800">
+            <i class="fa-solid fa-toolbox text-indigo-500 text-2xl mr-3"></i>
+            <h1 class="text-xl font-bold text-white tracking-tight">FerreStock<span class="text-indigo-500 text-sm">PRO</span></h1>
+        </div>
+        
+        <nav class="flex-grow py-6 flex flex-col gap-2 px-3">
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">Módulos</div>
+            
+            <button onclick="switchView('pos')" id="nav-pos" class="flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white active-nav-item">
+                <i class="fa-solid fa-cash-register w-6"></i> Punto de Venta
+            </button>
+            <button onclick="switchView('inventory')" id="nav-inventory" class="flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white border-left-transparent border-l-4">
+                <i class="fa-solid fa-boxes-stacked w-6"></i> Inventario
+            </button>
+            <button onclick="switchView('kardex')" id="nav-kardex" class="flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white border-left-transparent border-l-4">
+                <i class="fa-solid fa-clock-rotate-left w-6"></i> Historial Kardex
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 bg-slate-900">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">A</div>
+                <div class="text-sm">
+                    <p class="text-white font-medium leading-none">Admin</p>
+                    <p class="text-xs text-slate-500 mt-1">Caja Principal</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow flex flex-col h-screen overflow-hidden bg-slate-100">
+        
+        <!-- MOBILE HEADER -->
+        <header class="md:hidden bg-slate-900 text-white h-14 flex items-center justify-between px-4 flex-none">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-toolbox text-indigo-500"></i>
+                <h1 class="font-bold">FerreStock Pro</h1>
+            </div>
+            <select onchange="switchView(this.value)" class="bg-slate-800 border-none text-sm rounded px-2 py-1 focus:ring-0 text-white">
+                <option value="pos">Ventas</option>
+                <option value="inventory">Inventario</option>
+                <option value="kardex">Kardex</option>
+            </select>
+        </header>
+
+        <!-- VIEWS CONTAINER -->
+        <div class="flex-grow relative overflow-hidden">
+            
+            <!-- VIEW: PUNTO DE VENTA -->
+            <section id="view-pos" class="absolute inset-0 flex flex-col lg:flex-row gap-4 p-4 fade-in">
+                <!-- Products Grid -->
+                <div class="flex-grow flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-slate-700">Catálogo</h2>
+                        <div class="relative w-64">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="pos-search" placeholder="Buscar producto..." class="w-full pl-10 pr-4 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" onkeyup="renderPOS()">
+                        </div>
+                    </div>
+                    <div id="pos-grid" class="flex-grow overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 items-start content-start">
+                        <!-- JS Injected -->
+                    </div>
+                </div>
+
+                <!-- Cart -->
+                <div class="w-full lg:w-[400px] bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden flex-none">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-slate-700">Ticket de Venta</h2>
+                        <button onclick="clearCart()" class="text-sm text-red-500 hover:text-red-700"><i class="fa-solid fa-trash-can mr-1"></i>Vaciar</button>
+                    </div>
+                    
+                    <div id="cart-items" class="flex-grow overflow-y-auto p-3 flex flex-col gap-2">
+                        <!-- JS Injected -->
+                    </div>
+
+                    <div class="p-4 border-t border-slate-200 bg-slate-50">
+                        <div class="flex justify-between items-center mb-1 text-sm text-slate-600">
+                            <span>Subtotal:</span>
+                            <span id="cart-subtotal">S/ 0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-3 text-sm text-slate-600">
+                            <span>IGV (18%):</span>
+                            <span id="cart-tax">S/ 0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-4 text-xl font-bold text-slate-800 border-t border-slate-300 pt-2">
+                            <span>Total:</span>
+                            <span id="cart-total" class="text-indigo-600">S/ 0.00</span>
+                        </div>
+                        <button onclick="processCheckout()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-money-check-dollar text-lg"></i> Cobrar y Descontar Stock
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: INVENTARIO -->
+            <section id="view-inventory" class="absolute inset-0 flex flex-col gap-4 p-4 hidden fade-in">
+                <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="relative w-64 md:w-96">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="inv-search" placeholder="Buscar en inventario..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" onkeyup="renderInventory()">
+                    </div>
+                    <button onclick="openModal('modal-product')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i><span class="hidden md:inline"> Nuevo Artículo</span>
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-grow flex flex-col overflow-hidden">
+                    <div class="overflow-auto flex-grow">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead class="sticky top-0 bg-slate-100 shadow-sm z-10">
+                                <tr class="text-slate-600 text-xs uppercase tracking-wider">
+                                    <th class="p-3 font-semibold border-b">SKU</th>
+                                    <th class="p-3 font-semibold border-b">Artículo</th>
+                                    <th class="p-3 font-semibold border-b">Categoría</th>
+                                    <th class="p-3 font-semibold border-b text-right">Precio Venta</th>
+                                    <th class="p-3 font-semibold border-b text-center">Und.</th>
+                                    <th class="p-3 font-semibold border-b text-right">Stock</th>
+                                    <th class="p-3 font-semibold border-b text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inv-tbody" class="text-sm divide-y divide-slate-100">
+                                <!-- JS Injected -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: KARDEX -->
+            <section id="view-kardex" class="absolute inset-0 flex flex-col gap-4 p-4 hidden fade-in">
+                <div class="flex flex-wrap justify-between items-center gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex gap-3 flex-grow max-w-2xl">
+                        <select id="kar-filter-prod" class="flex-1 p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" onchange="renderKardex()">
+                            <option value="ALL">Todos los artículos</option>
+                        </select>
+                        <select id="kar-filter-type" class="w-40 p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" onchange="renderKardex()">
+                            <option value="ALL">Todos los mov.</option>
+                            <option value="IN">Entradas</option>
+                            <option value="OUT">Salidas</option>
+                        </select>
+                    </div>
+                    <button onclick="openMovementModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-right-left"></i> Registrar Movimiento
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-grow flex flex-col overflow-hidden">
+                    <div class="overflow-auto flex-grow">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead class="sticky top-0 bg-slate-100 shadow-sm z-10">
+                                <tr class="text-slate-600 text-xs uppercase tracking-wider">
+                                    <th class="p-3 font-semibold border-b">Fecha/Hora</th>
+                                    <th class="p-3 font-semibold border-b">Tipo</th>
+                                    <th class="p-3 font-semibold border-b">Artículo</th>
+                                    <th class="p-3 font-semibold border-b text-center">Cant.</th>
+                                    <th class="p-3 font-semibold border-b">Motivo / Referencia</th>
+                                    <th class="p-3 font-semibold border-b">Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kar-tbody" class="text-sm divide-y divide-slate-100">
+                                <!-- JS Injected -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- MODALS -->
+    
+    <!-- Modal: Nuevo Producto -->
+    <div id="modal-product" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex justify-center items-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden fade-in">
+            <div class="bg-indigo-700 p-4 flex justify-between items-center text-white">
+                <h3 class="font-semibold"><i class="fa-solid fa-box mr-2"></i>Registrar Nuevo Artículo</h3>
+                <button onclick="closeModal('modal-product')" class="hover:text-slate-200"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <form onsubmit="handleNewProduct(event)" class="p-5 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">SKU / Código</label>
+                        <input type="text" id="add-sku" required class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Categoría</label>
+                        <select id="add-cat" required class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="Ferretería">Ferretería</option>
+                            <option value="Construcción">Construcción</option>
+                            <option value="Eléctrico">Eléctrico</option>
+                            <option value="Plomería">Plomería</option>
+                            <option value="Herramientas">Herramientas</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Artículo</label>
+                    <input type="text" id="add-name" required class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Unidad M.</label>
+                        <select id="add-unit" class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="UND">Unidad (UND)</option>
+                            <option value="KG">Kilogramos (KG)</option>
+                            <option value="MTS">Metros (MTS)</option>
+                            <option value="BLS">Bolsa (BLS)</option>
+                            <option value="GL">Galón (GL)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Precio (S/)</label>
+                        <input type="number" id="add-price" required step="0.01" min="0" class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Stock Mín.</label>
+                        <input type="number" id="add-min" required min="0" class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div class="pt-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Stock Inicial (Genera Ingreso Kardex)</label>
+                    <input type="number" id="add-stock" required min="0" step="0.01" class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="pt-4 flex gap-3 border-t">
+                    <button type="button" onclick="closeModal('modal-product')" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-sm font-medium">Cancelar</button>
+                    <button type="submit" class="flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Movimiento Kardex -->
+    <div id="modal-movement" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex justify-center items-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden fade-in">
+            <div class="bg-emerald-700 p-4 flex justify-between items-center text-white">
+                <h3 class="font-semibold"><i class="fa-solid fa-right-left mr-2"></i>Registrar Movimiento Kardex</h3>
+                <button onclick="closeModal('modal-movement')" class="hover:text-slate-200"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <form onsubmit="handleMovement(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Artículo</label>
+                    <select id="mov-prod" required class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                        <!-- JS Injected -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo</label>
+                        <select id="mov-type" required onchange="updateMovReasons()" class="w-full p-2 border border-slate-300 rounded-md text-sm font-bold focus:ring-2 focus:ring-indigo-500">
+                            <option value="IN" class="text-emerald-600">ENTRADA (+)</option>
+                            <option value="OUT" class="text-red-600">SALIDA (-)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad</label>
+                        <input type="number" id="mov-qty" required step="0.01" min="0.01" class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Motivo</label>
+                    <select id="mov-reason" required class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                        <!-- JS Injected -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Referencia (Factura, Boleta, Doc)</label>
+                    <input type="text" id="mov-ref" required class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="pt-4 flex gap-3 border-t">
+                    <button type="button" onclick="closeModal('modal-movement')" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-sm font-medium">Cancelar</button>
+                    <button type="submit" class="flex-1 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-medium">Procesar Movimiento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 flex flex-col gap-2 z-[60]"></div>
+
+    <script>
+        // --- DATA STATE ---
+        let nextProductId = 6;
+        let products = [
+            { id: 1, sku: 'CON-001', name: 'Cemento Portland Sol Tipo I', category: 'Construcción', price: 28.50, unit: 'BLS', stock: 45, minStock: 20, icon: 'fa-sack-xmark' },
+            { id: 2, sku: 'PIN-001', name: 'Pintura Látex Blanco Vencedor 1Gl', category: 'Ferretería', price: 42.00, unit: 'GL', stock: 8, minStock: 10, icon: 'fa-paint-roller' },
+            { id: 3, sku: 'HER-015', name: 'Martillo de Uña Curva 16oz', category: 'Herramientas', price: 25.00, unit: 'UND', stock: 12, minStock: 5, icon: 'fa-hammer' },
+            { id: 4, sku: 'FER-099', name: 'Clavos para Madera 2" (Caja 1Kg)', category: 'Ferretería', price: 7.50, unit: 'KG', stock: 50, minStock: 15, icon: 'fa-box' },
+            { id: 5, sku: 'ELE-042', name: 'Cable THW #12 AWG Indeco', category: 'Eléctrico', price: 2.50, unit: 'MTS', stock: 350.5, minStock: 100, icon: 'fa-plug' }
+        ];
+
+        let cart = [];
+        
+        // Seed Kardex with initial dummy data
+        let kardex = [
+            { id: 101, date: new Date(Date.now() - 86400000).toISOString(), productId: 1, type: 'IN', qty: 50, reason: 'Compra a Proveedor', ref: 'Factura F001-44', user: 'Admin' },
+            { id: 102, date: new Date(Date.now() - 3600000).toISOString(), productId: 1, type: 'OUT', qty: 5, reason: 'Venta Mostrador', ref: 'Boleta B001-89', user: 'Admin' }
+        ];
+
+        // --- UTILS ---
+        const formatMoney = (amount) => `S/ ${amount.toFixed(2)}`;
+        const formatDate = (iso) => new Date(iso).toLocaleString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            let colors = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-red-600' : 'bg-slate-800');
+            let icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-circle-xmark' : 'fa-info-circle');
+            
+            toast.className = `${colors} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 fade-in`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span class="font-medium text-sm">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        // --- NAVIGATION ---
+        function switchView(viewId) {
+            ['pos', 'inventory', 'kardex'].forEach(id => {
+                document.getElementById(`view-${id}`).classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${id}`);
+                if(navBtn) {
+                    navBtn.classList.remove('active-nav-item');
+                    navBtn.classList.add('border-left-transparent', 'border-l-4');
+                }
+            });
+            
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${viewId}`);
+            if(activeBtn) {
+                activeBtn.classList.add('active-nav-item');
+                activeBtn.classList.remove('border-left-transparent');
+            }
+
+            // Re-render corresponding view to ensure freshness
+            if(viewId === 'pos') renderPOS();
+            if(viewId === 'inventory') renderInventory();
+            if(viewId === 'kardex') {
+                updateKardexFilters();
+                renderKardex();
+            }
+        }
+
+        // --- STREAMING_CHUNK:POS Logic ---
+        function renderPOS() {
+            const term = document.getElementById('pos-search').value.toLowerCase();
+            const grid = document.getElementById('pos-grid');
+            grid.innerHTML = '';
+
+            products.filter(p => p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term))
+                .forEach(p => {
+                    const noStock = p.stock <= 0;
+                    grid.innerHTML += `
+                        <div class="bg-white border ${noStock ? 'border-red-200 opacity-60' : 'border-slate-200 hover:border-indigo-400 hover:shadow-md cursor-pointer'} rounded-xl p-4 flex flex-col transition-all"
+                             ${noStock ? '' : `onclick="addToCart(${p.id})"`}>
+                            <div class="text-slate-400 text-2xl mb-2 flex justify-between items-start">
+                                <i class="fa-solid ${p.icon || 'fa-box'}"></i>
+                                <span class="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">${p.sku}</span>
+                            </div>
+                            <h3 class="text-sm font-semibold text-slate-700 leading-tight mb-1 h-10 overflow-hidden">${p.name}</h3>
+                            <p class="text-xs text-slate-400 mb-3">${p.category}</p>
+                            <div class="mt-auto flex justify-between items-end">
+                                <span class="font-bold text-indigo-600">${formatMoney(p.price)}</span>
+                                <div class="text-right">
+                                    <div class="text-xs ${noStock ? 'text-red-500 font-bold' : 'text-slate-500'}">Disp: ${p.stock} ${p.unit}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+        }
+
+        function addToCart(productId) {
+            const prod = products.find(p => p.id === productId);
+            if (!prod || prod.stock <= 0) return;
+
+            const existing = cart.find(c => c.product.id === productId);
+            if (existing) {
+                if (existing.qty + 1 > prod.stock) return showToast(`Stock límite alcanzado para ${prod.name}`, 'error');
+                existing.qty++;
+            } else {
+                cart.push({ product: prod, qty: 1 });
+            }
+            renderCart();
+        }
+
+        function updateCartQty(idx, change) {
+            const item = cart[idx];
+            const newQty = item.qty + change;
+            if (newQty <= 0) {
+                cart.splice(idx, 1);
+            } else if (newQty > item.product.stock) {
+                return showToast('No hay suficiente stock', 'error');
+            } else {
+                item.qty = newQty;
+            }
+            renderCart();
+        }
+        
+        function setManualQty(idx, value) {
+             const item = cart[idx];
+             const newQty = parseFloat(value);
+             if(isNaN(newQty) || newQty <= 0) {
+                 cart.splice(idx, 1);
+             } else if (newQty > item.product.stock) {
+                 item.qty = item.product.stock; // snap to max
+                 showToast('Cantidad ajustada al stock máximo disponible', 'info');
+             } else {
+                 item.qty = newQty;
+             }
+             renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-items');
+            container.innerHTML = '';
+            let subtotal = 0;
+
+            if (cart.length === 0) {
+                container.innerHTML = `<div class="text-center text-slate-400 py-10"><i class="fa-solid fa-cart-arrow-down text-3xl mb-2 opacity-50"></i><p class="text-sm">Carrito vacío</p></div>`;
+            } else {
+                cart.forEach((item, idx) => {
+                    const rowTotal = item.product.price * item.qty;
+                    subtotal += rowTotal;
+                    
+                    // Allow decimal steps if not UND or BLS
+                    const isDecimal = !['UND', 'BLS'].includes(item.product.unit);
+                    const step = isDecimal ? "0.1" : "1";
+
+                    container.innerHTML += `
+                        <div class="bg-white border border-slate-200 rounded-lg p-2.5 shadow-sm fade-in">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-xs font-semibold text-slate-700 truncate pr-2">${item.product.name}</span>
+                                <span class="text-xs font-bold text-slate-800">${formatMoney(rowTotal)}</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-[10px] text-slate-500">${formatMoney(item.product.price)} / ${item.product.unit}</span>
+                                <div class="flex items-center gap-1 bg-slate-100 rounded p-1">
+                                    <button onclick="updateCartQty(${idx}, ${isDecimal ? -0.5 : -1})" class="w-5 h-5 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 hover:bg-slate-200"><i class="fa-solid fa-minus text-[10px]"></i></button>
+                                    <input type="number" step="${step}" value="${item.qty}" onchange="setManualQty(${idx}, this.value)" class="w-12 text-center text-xs font-bold bg-transparent focus:outline-none hide-arrows" style="-moz-appearance: textfield;">
+                                    <button onclick="updateCartQty(${idx}, ${isDecimal ? 0.5 : 1})" class="w-5 h-5 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 hover:bg-slate-200"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            const tax = subtotal * 0.18;
+            document.getElementById('cart-subtotal').textContent = formatMoney(subtotal);
+            document.getElementById('cart-tax').textContent = formatMoney(tax);
+            document.getElementById('cart-total').textContent = formatMoney(subtotal + tax);
+        }
+
+        function clearCart() {
+            cart = [];
+            renderCart();
+        }
+
+        function processCheckout() {
+            if (cart.length === 0) return showToast('El carrito está vacío', 'error');
+
+            const refId = 'VEN-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+            const now = new Date().toISOString();
+
+            cart.forEach(item => {
+                // 1. Deduct Stock
+                const prod = products.find(p => p.id === item.product.id);
+                prod.stock -= item.qty;
+
+                // 2. Add to Kardex
+                kardex.push({
+                    id: Date.now() + Math.random(),
+                    date: now,
+                    productId: prod.id,
+                    type: 'OUT',
+                    qty: item.qty,
+                    reason: 'Venta de Mostrador',
+                    ref: refId,
+                    user: 'Admin'
+                });
+            });
+
+            showToast(`Venta procesada exitosamente (${refId})`, 'success');
+            clearCart();
+            renderPOS(); // update grid stock
+        }
+
+        // --- STREAMING_CHUNK:Inventory Logic ---
+        function renderInventory() {
+            const term = document.getElementById('inv-search').value.toLowerCase();
+            const tbody = document.getElementById('inv-tbody');
+            tbody.innerHTML = '';
+
+            products.filter(p => p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term))
+                .forEach(p => {
+                    let status = '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold">Óptimo</span>';
+                    let stockColor = 'text-slate-800';
+                    if (p.stock <= 0) {
+                        status = '<span class="px-2 py-1 bg-red-100 text-red-700 rounded text-[10px] font-bold">Agotado</span>';
+                        stockColor = 'text-red-600 font-bold';
+                    } else if (p.stock <= p.minStock) {
+                        status = '<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-[10px] font-bold">Bajo</span>';
+                        stockColor = 'text-yellow-600 font-bold';
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-3 border-b text-xs font-mono text-slate-500">${p.sku}</td>
+                            <td class="p-3 border-b text-sm font-medium text-slate-800"><i class="fa-solid ${p.icon || 'fa-box'} text-slate-400 mr-2"></i>${p.name}</td>
+                            <td class="p-3 border-b text-xs text-slate-500">${p.category}</td>
+                            <td class="p-3 border-b text-sm text-right font-medium">${formatMoney(p.price)}</td>
+                            <td class="p-3 border-b text-xs text-center text-slate-500 bg-slate-50/50">${p.unit}</td>
+                            <td class="p-3 border-b text-sm text-right ${stockColor}">${p.stock}</td>
+                            <td class="p-3 border-b text-center">${status}</td>
+                        </tr>
+                    `;
+                });
+        }
+
+        function handleNewProduct(e) {
+            e.preventDefault();
+            const sku = document.getElementById('add-sku').value.toUpperCase();
+            const name = document.getElementById('add-name').value;
+            const category = document.getElementById('add-cat').value;
+            const unit = document.getElementById('add-unit').value;
+            const price = parseFloat(document.getElementById('add-price').value);
+            const minStock = parseFloat(document.getElementById('add-min').value);
+            const initialStock = parseFloat(document.getElementById('add-stock').value);
+
+            // Validation
+            if(products.some(p => p.sku === sku)) return showToast('El SKU ya existe', 'error');
+
+            const newProd = {
+                id: nextProductId++, sku, name, category, unit, price, minStock, stock: initialStock, icon: 'fa-box-open'
+            };
+            products.push(newProd);
+
+            // Create initial Kardex entry if stock > 0
+            if (initialStock > 0) {
+                kardex.push({
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    productId: newProd.id,
+                    type: 'IN',
+                    qty: initialStock,
+                    reason: 'Inventario Inicial',
+                    ref: 'Apertura Sistema',
+                    user: 'Admin'
+                });
+            }
+
+            closeModal('modal-product');
+            showToast('Producto agregado al inventario', 'success');
+            e.target.reset();
+            renderInventory(); // Update inventory view immediately
+        }
+
+        // --- STREAMING_CHUNK:Kardex Logic ---
+        function updateKardexFilters() {
+            const select = document.getElementById('kar-filter-prod');
+            select.innerHTML = '<option value="ALL">Todos los artículos</option>';
+            products.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">[${p.sku}] ${p.name}</option>`;
+            });
+        }
+
+        function renderKardex() {
+            const prodFilter = document.getElementById('kar-filter-prod').value;
+            const typeFilter = document.getElementById('kar-filter-type').value;
+            const tbody = document.getElementById('kar-tbody');
+            tbody.innerHTML = '';
+
+            let filtered = [...kardex].sort((a,b) => new Date(b.date) - new Date(a.date)); // Newest top
+            
+            if (prodFilter !== 'ALL') filtered = filtered.filter(k => k.productId == prodFilter);
+            if (typeFilter !== 'ALL') filtered = filtered.filter(k => k.type === typeFilter);
+
+            filtered.forEach(k => {
+                const prod = products.find(p => p.id === k.productId);
+                if(!prod) return;
+
+                const isIN = k.type === 'IN';
+                const badge = isIN 
+                    ? `<span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded"><i class="fa-solid fa-arrow-down mr-1"></i>ENTRADA</span>`
+                    : `<span class="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-1 rounded"><i class="fa-solid fa-arrow-up mr-1"></i>SALIDA</span>`;
+                
+                const qtyColor = isIN ? 'text-emerald-600' : 'text-red-600';
+                const sign = isIN ? '+' : '-';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-3 border-b text-xs text-slate-500">${formatDate(k.date)}</td>
+                        <td class="p-3 border-b">${badge}</td>
+                        <td class="p-3 border-b">
+                            <div class="text-sm font-medium text-slate-800">${prod.name}</div>
+                            <div class="text-[10px] text-slate-400 font-mono">${prod.sku}</div>
+                        </td>
+                        <td class="p-3 border-b text-center font-mono font-bold ${qtyColor}">${sign}${k.qty} <span class="text-[10px] text-slate-400">${prod.unit}</span></td>
+                        <td class="p-3 border-b">
+                            <div class="text-xs text-slate-700">${k.reason}</div>
+                            <div class="text-[10px] text-slate-400">${k.ref}</div>
+                        </td>
+                        <td class="p-3 border-b text-xs text-slate-500">${k.user}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openMovementModal() {
+            const prodSelect = document.getElementById('mov-prod');
+            prodSelect.innerHTML = '';
+            products.forEach(p => {
+                prodSelect.innerHTML += `<option value="${p.id}">[${p.sku}] ${p.name} (Disp: ${p.stock} ${p.unit})</option>`;
+            });
+            updateMovReasons();
+            openModal('modal-movement');
+        }
+
+        function updateMovReasons() {
+            const type = document.getElementById('mov-type').value;
+            const select = document.getElementById('mov-reason');
+            select.innerHTML = '';
+            const reasons = type === 'IN' 
+                ? ['Compra a Proveedor', 'Devolución de Cliente', 'Ajuste Sobrante'] 
+                : ['Merma / Daño', 'Uso Interno', 'Devolución a Proveedor', 'Ajuste Faltante'];
+            
+            reasons.forEach(r => select.innerHTML += `<option value="${r}">${r}</option>`);
+        }
+
+        function handleMovement(e) {
+            e.preventDefault();
+            const prodId = parseInt(document.getElementById('mov-prod').value);
+            const type = document.getElementById('mov-type').value;
+            const qty = parseFloat(document.getElementById('mov-qty').value);
+            const reason = document.getElementById('mov-reason').value;
+            const ref = document.getElementById('mov-ref').value;
+
+            const prod = products.find(p => p.id === prodId);
+            
+            if (type === 'OUT' && prod.stock < qty) {
+                return showToast(`Stock insuficiente. Disponible: ${prod.stock}`, 'error');
+            }
+
+            // Update Stock
+            prod.stock += (type === 'IN' ? qty : -qty);
+
+            // Record Kardex
+            kardex.push({
+                id: Date.now(), date: new Date().toISOString(),
+                productId: prod.id, type, qty, reason, ref, user: 'Admin'
+            });
+
+            closeModal('modal-movement');
+            showToast('Movimiento registrado. Stock actualizado.', 'success');
+            e.target.reset();
+            
+            // Refresh views if they are open
+            renderKardex();
+            renderInventory(); // Keep inventory view fresh in background
+        }
+
+        // --- MODAL UTILS ---
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // --- INIT ---
+        window.onload = () => {
+            renderPOS();
+            renderCart();
+            // Start on POS view by default
+        };
+    </script>
+</body>
+</html>
